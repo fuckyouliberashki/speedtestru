@@ -1,0 +1,47 @@
+#!/bin/bash
+
+GREEN="\e[32m"
+YELLOW="\e[33m"
+RED="\e[31m"
+RESET="\e[0m"
+
+declare -A cities
+cities=(
+    ["Москва"]="95.108.200.1"
+    ["Санкт-Петербург"]="93.184.216.34"
+    ["Новосибирск"]="195.208.14.2"
+    ["Екатеринбург"]="91.219.236.1"
+    ["Казань"]="91.219.236.129"
+    ["Нижний Новгород"]="62.76.1.1"
+    ["Краснодар"]="185.71.65.1"
+    ["Самара"]="178.21.0.1"
+    ["Ростов-на-Дону"]="217.119.128.1"
+)
+
+printf "%-20s %-15s %-10s %-10s %-10s\n" "Город" "IP" "Min(ms)" "Avg(ms)" "Max(ms)"
+printf "%-20s %-15s %-10s %-10s %-10s\n" "--------------------" "---------------" "--------" "--------" "--------"
+
+for city in "${!cities[@]}"; do
+    ip="${cities[$city]}"
+    ping_result=$(ping -c 4 -q "$ip" 2>/dev/null)
+    
+    if [ $? -eq 0 ]; then
+        # rtt min/avg/max/mdev
+        rtt=$(echo "$ping_result" | grep 'rtt' | awk -F'=' '{print $2}' | awk '{print $1}')
+        min=$(echo $rtt | cut -d/ -f1)
+        avg=$(echo $rtt | cut -d/ -f2)
+        max=$(echo $rtt | cut -d/ -f3)
+      
+        if (( $(echo "$avg < 50" | bc -l) )); then
+            color=$GREEN
+        elif (( $(echo "$avg < 100" | bc -l) )); then
+            color=$YELLOW
+        else
+            color=$RED
+        fi
+        
+        printf "%-20s %-15s %-10s %-10s %-10s\n" "$city" "$ip" "$min" "${color}${avg}${RESET}" "$max"
+    else
+        printf "%-20s %-15s %-10s %-10s %-10s\n" "$city" "$ip" "-" "-" "-"
+    fi
+done
